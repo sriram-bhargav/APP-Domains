@@ -47,7 +47,7 @@ def findDomains():
 	future = asyncio.ensure_future(run())
 	done = loop.run_until_complete(future)
 	for response in done:
-		if json.loads(response[1])["available"] == False:
+		if json.loads(response[1])["available"] != False:
 			print (response[0])
 
 maxArgValue = 0
