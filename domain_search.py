@@ -22,11 +22,7 @@ async def fetch(url, session):
 async def bound_fetch(sem, app, url, session):
 	# Getter function with semaphore.
 	async with sem:
-		response = await fetch(url, session)
-		data = json.loads(response)
-		if data["available"] != False:
-			print (app + ".app")
-
+		return (app, await fetch(url, session))
 
 async def run():
 	url = "https://domain-registry.appspot.com/check?domain={}.app"
@@ -36,8 +32,7 @@ async def run():
 		for app in Words:
 			task = asyncio.ensure_future(bound_fetch(sem, app, url.format(app), session))
 			tasks.append(task)
-		responses = asyncio.gather(*tasks)
-		await responses
+		return await asyncio.gather(*tasks)
 
 
 Words = set()
@@ -50,7 +45,10 @@ def findDomains():
 					Words.add(word)
 	loop = asyncio.get_event_loop()
 	future = asyncio.ensure_future(run())
-	loop.run_until_complete(future)
+	done = loop.run_until_complete(future)
+	for response in done:
+		if json.loads(response[1])["available"] == False:
+			print (response[0])
 
 maxArgValue = 0
 minArgValue = 0
