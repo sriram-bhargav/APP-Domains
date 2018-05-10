@@ -16,16 +16,7 @@ def getopts(argv):
 		argv = argv[1:]  # Reduce the argument list by copying it starting from index 1.
 	return opts
 
-
-
-def valid(app):
-	if app in Dict or app in DictAll:
-		return True
-	return False
-
 def curl(app):
-	if valid(app) == False:
-		return
 	url = "https://domain-registry.appspot.com/check?domain=" + app + ".app"
 	headers = {
 		'origin': 'https://get.app',
@@ -43,30 +34,21 @@ def curl(app):
 		if data["available"] != False:
 			print app + ".app"
 
-def readWords():
-	readWordsFull()
-	readWordsHelper('2.txt')
-	readWordsHelper('3.txt')
-	readWordsHelper('4.txt')
-	readWordsHelper('5.txt')
-
-Dict = Set([])
-DictAll = Set([])
-
-def readWordsHelper(file):
-	with open(file, 'rb') as csvfile:
-		wordreader = csv.reader(csvfile, delimiter=',')
-		for box in wordreader:
-			for word in box:
-				Dict.add(word)
-
-def readWordsFull():
+def findDomains():
 	with open('all.txt', 'rb') as csvfile:
 		wordreader = csv.reader(csvfile)
 		for box in wordreader:
 			for word in box:
-				if len(word) < 9:
-					DictAll.add(word)
+				if len(word) >= minArgValue and len(word) <= maxArgValue:
+					curl(word)
+
+
+
+maxArgValue = 0
+minArgValue = 0
+hasMaxArg = False
+hasMinArg = False
+imaginary = "I hope you are not looking for imaginary domains"
 
 if __name__ == "__main__":
 	from sys import argv
@@ -74,20 +56,31 @@ if __name__ == "__main__":
 	if '-app' in myargs:
 		curl(myargs['-app'])
 	else:
-		readWords()
-		amazon = list(string.ascii_lowercase)
-		for i in range(len(amazon)):
-			for j in range(len(amazon)):
-				two = amazon[i]+amazon[j]
-				curl(two)
-				for k in range(len(amazon)):
-					three = two + amazon[k]
-					curl(three)
-					for m in range(len(amazon)):
-						four = three + amazon[m]
-						curl(four)
-						for n in range(len(amazon)):
-							five = four + amazon[n]
-							curl(five)
+		if '-max' in myargs:
+			maxArgValue = int(myargs['-max'])
+			hasMaxArg = True
+		if '-min' in myargs:
+			minArgValue = int(myargs['-min'])
+			hasMinArg = True
 
-
+		if hasMaxArg and hasMinArg:
+			if minArgValue > maxArgValue:
+				print imaginary
+				sys.exit()
+			elif maxArgValue < 1 or minArgValue < 1:
+				print imaginary
+				sys.exit()
+		elif hasMaxArg:
+			if maxArgValue < 1:
+				print imaginary
+				sys.exit()
+			minArgValue = 1
+		elif hasMinArg:
+			if minArgValue < 1:
+				print imaginary
+				sys.exit()
+			maxArgValue = 8
+		else:
+			minArgValue = 1
+			maxArgValue = 8
+		findDomains()
