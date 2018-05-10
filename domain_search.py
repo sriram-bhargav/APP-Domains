@@ -1,12 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import sys, getopt
-import requests
-import json
-import string
-import time
-import csv
-from sets import Set
+import requests, concurrent.futures
+import json, string, csv
+import random
+import asyncio
+from aiohttp import ClientSession
 
 def getopts(argv):
 	opts = {}  # Empty dictionary to store key-value pairs.
@@ -16,33 +15,42 @@ def getopts(argv):
 		argv = argv[1:]  # Reduce the argument list by copying it starting from index 1.
 	return opts
 
-def curl(app):
-	url = "https://domain-registry.appspot.com/check?domain=" + app + ".app"
-	headers = {
-		'origin': 'https://get.app',
-		'accept-encoding': 'gzip, deflate, br',
-		'accept-language': 'en-US,en;q=0.9', 
-		'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1', 
-		'accept': '*/*', 
-		'referer': 'https://get.app/', 
-		'authority': 'domain-registry.appspot.com', 
-		'dnt': '1',
-	}
-	resp = requests.get(url,headers=headers)
-	if resp.status_code == 200:
-		data = json.loads(resp.content)
-		if data["available"] != False:
-			print app + ".app"
+async def fetch(url, session):
+	async with session.get(url) as response:
+		return await response.read()
 
+async def bound_fetch(sem, app, url, session):
+	# Getter function with semaphore.
+	async with sem:
+		response = await fetch(url, session)
+		data = json.loads(response)
+		if data["available"] != False:
+			print (app + ".app")
+
+
+async def run():
+	url = "https://domain-registry.appspot.com/check?domain={}.app"
+	tasks = []
+	sem = asyncio.Semaphore(1000)
+	async with ClientSession() as session:
+		for app in Words:
+			task = asyncio.ensure_future(bound_fetch(sem, app, url.format(app), session))
+			tasks.append(task)
+		responses = asyncio.gather(*tasks)
+		await responses
+
+
+Words = set()
 def findDomains():
-	with open('all.txt', 'rb') as csvfile:
+	with open('all.txt', 'rt', encoding='utf8') as csvfile:
 		wordreader = csv.reader(csvfile)
 		for box in wordreader:
 			for word in box:
 				if len(word) >= minArgValue and len(word) <= maxArgValue:
-					curl(word)
-
-
+					Words.add(word)
+	loop = asyncio.get_event_loop()
+	future = asyncio.ensure_future(run())
+	loop.run_until_complete(future)
 
 maxArgValue = 0
 minArgValue = 0
@@ -65,19 +73,19 @@ if __name__ == "__main__":
 
 		if hasMaxArg and hasMinArg:
 			if minArgValue > maxArgValue:
-				print imaginary
+				print (imaginary)
 				sys.exit()
 			elif maxArgValue < 1 or minArgValue < 1:
-				print imaginary
+				print (imaginary)
 				sys.exit()
 		elif hasMaxArg:
 			if maxArgValue < 1:
-				print imaginary
+				print (imaginary)
 				sys.exit()
 			minArgValue = 1
 		elif hasMinArg:
 			if minArgValue < 1:
-				print imaginary
+				print (imaginary)
 				sys.exit()
 			maxArgValue = 8
 		else:
