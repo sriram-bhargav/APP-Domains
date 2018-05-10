@@ -7,3 +7,4 @@
 3. To explore all currently available .app domains which are valid *English words*:
    try `./domain_search.py -min 4 -max 8` to find all available domain names with atleast 4 and atmost 8 characters.
 4. You can also check available.app file for available English .app domains (upto 8 chars).
+5. (TODO) Link with godaddy api to extract estimated .app domain value. Feel free to make a pull request.
